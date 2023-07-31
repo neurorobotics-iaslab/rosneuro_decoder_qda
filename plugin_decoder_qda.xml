@@ -1,0 +1,6 @@
+<library path="lib/librosneuro_decoder_qda">
+  <class type="rosneuro::decoder::Qda" base_class_type="rosneuro::decoder::GenericDecoder">
+    <description>This is the ROSNeuro Decoder QDA plugin.</description>
+  </class>
+</library>
+
