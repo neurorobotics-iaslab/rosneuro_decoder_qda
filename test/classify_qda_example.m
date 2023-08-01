@@ -41,7 +41,7 @@ legend('class-1', 'class-2', 'misclassified');
 hold off
 
 %% Load rosneuro probabilities
-disp('load the data compute with rosneuro')
+disp('load the computed raw probability of rosneuro qda decoder')
 load('/home/paolo/rosneuro_ws/src/rosneuro_decoder_qda/test/output.csv');
 
 %% See differences
