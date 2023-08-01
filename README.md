@@ -4,13 +4,13 @@ This package implements a QDA classifier as a plugin for rosneuro::decoder::Deco
 
 ## Usage
 The package required as ros parameter:
-Markup : 
-    - **cfg_name**: which is the name of the structure in the yaml file
-    - **yaml file**: which contains the structure for the qda classifier
+<ul>
+    <li> <b>cfg_name</b>: which is the name of the structure in the yaml file; </li>
+    <li> <b>yaml file</b>: which contains the structure for the qda classifier. </li>
+</ul>
 
 ## Example of yaml file
-Markup: 
-`
+```
 QdaCfg:
   name: "qda"
   params:
@@ -30,11 +30,12 @@ QdaCfg:
            -0.0187 -0.0144;
            -0.0187 -0.0144;
             0.9120  0.8959;"
-`
+```
 
 Some parameters are hard coded:
-Markup: 
-    - **idchans**: the index of the channels from 1 to the number of channels used;
-    - **freqs:**: the selected frequencies;
-    - **means**: matrix of [features x classes];
-    - **covs**: matrix of [(feature * feature) x classes]. Therefore, each column is reshaped to obtain the covariance matrix of size [feature x feature] for that class. Thus the the vector paased must be obtained by concatenate columns.
+<ul>
+    <li> <b>idchans</b>: the index of the channels from 1 to the number of channels used; </li>
+    <li> <b>freqs</b>: the selected frequencies; </li>
+    <li> <b>means</b>: matrix of [features x classes]; </li>
+    <li> <b>covs</b>: matrix of [(feature * feature) x classes]. Therefore, each column is reshaped to obtain the covariance matrix of size [feature x feature] for that class. Thus the the vector paased must be obtained by concatenate columns. </li>
+</ul>
