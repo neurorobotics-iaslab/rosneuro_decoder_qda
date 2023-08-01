@@ -98,7 +98,47 @@ namespace rosneuro{
 
         Eigen::VectorXf Qda::apply(const Eigen::VectorXf& in){
 
+            std::vector<double> lh;
+            double den = 0.0;
+            for(int i = 0; i < this->config_.nclasses; i++){
+                Eigen::MatrixXf c_cov = this->rebuild_cov(this->covs_.col(i));
+                double c_coeff = 1/(std::sqrt((std::pow(2.0 * M_PI, in.size()))* c_cov.determinant()));
+                double c_exp = -0.5 * ((in - this->means_.col(i)).transpose() * c_cov.inverse() * (in - this->means_.col(i)))(0,0);
+                double c_lh = c_coeff * std::exp(c_exp);
+
+                lh.push_back(c_lh);
+
+                den = den + c_lh * this->config_.priors.at(i);
+            }
+
+            // Compute the posterior probability
+            Eigen::VectorXf output(lh.size(), 1);
+            for(int i = 0; i < this->config_.nclasses; i++){
+                double c_post = (lh.at(i) * this->config_.priors.at(i)) / den;
+                output(i,0) = c_post;
+            }
+
+            return output;
         }
+
+        Eigen::MatrixXf Qda::rebuild_cov(const Eigen::MatrixXf& in){
+            // check the dimensions
+            if(in.size() != this->config_.nfeatures * this->config_.nfeatures){
+                ROS_ERROR("[%s] Wrong dimension in the covariance", this->name().c_str());
+            }
+
+            Eigen::MatrixXf out(this->config_.nfeatures, this->config_.nfeatures);
+            int cont = 0;
+            for(int i = 0; i < this->config_.nfeatures; i++){
+                for(int j = 0; j < this->config_.nfeatures; j++){
+                    out(j,i) = in(cont, 0);
+                    cont ++;
+                }
+            }
+
+            return out;
+        }
+
 
         std::string Qda::path(){
             this->isSet();
@@ -144,7 +184,7 @@ namespace rosneuro{
             }
 
             // check the cov
-            if(this->covs_.rows() != this->config_.nfeatures || 
+            if(this->covs_.rows() != this->config_.nfeatures * this->config_.nfeatures || 
                this->covs_.cols() != this->config_.nclasses){
                 ROS_ERROR("[%s] Wrong dimensions in the 'covs' parameter", this->name().c_str());
                 return false;

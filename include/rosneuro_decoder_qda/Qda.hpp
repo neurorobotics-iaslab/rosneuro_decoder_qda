@@ -41,11 +41,12 @@ namespace rosneuro{
 
             private:
                 bool check_dimension(void);
+                Eigen::MatrixXf rebuild_cov(const Eigen::MatrixXf& in);
 
             private:
                 ros::NodeHandle p_nh_;
                 Eigen::MatrixXf means_;
-                Eigen::MatrixXf covs_; // must be a vector of eigen matrix
+                Eigen::MatrixXf covs_;
                 qdaconfig_t config_;
         };
 

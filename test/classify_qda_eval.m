@@ -41,10 +41,10 @@ for oId = 1:NumObservations
     x = F(oId, :)';
     
     % Class belonging probabilities
-    %lh(1) = (1/(sqrt(((2*pi)^length(x))*det(cov1))))*exp(-0.5*(x-m1)'/(cov1)*(x-m1));
-    %lh(2) = (1/(sqrt(((2*pi)^length(x))*det(cov2))))*exp(-0.5*(x-m2)'/(cov2)*(x-m2));
-    lh(1) = mvnpdf(x, m1, cov1);
-    lh(2) = mvnpdf(x, m2, cov2);
+    lh(1) = (1/(sqrt(((2*pi)^length(x))*det(cov1))))*exp(-0.5*(x-m1)'/(cov1)*(x-m1));
+    lh(2) = (1/(sqrt(((2*pi)^length(x))*det(cov2))))*exp(-0.5*(x-m2)'/(cov2)*(x-m2));
+    %lh(1) = mvnpdf(x, m1, cov1);
+    %lh(2) = mvnpdf(x, m2, cov2);
     
     % Posterior class belonging probabilities
     post(1) = lh(1)*priors(1)/(priors(1)*lh(1)+priors(2)*lh(2));
