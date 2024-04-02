@@ -39,6 +39,14 @@ catkin_package(
 )
 
 ##############################################################################
+# TEST
+##############################################################################
+
+catkin_add_gtest(TestQda test/TestQda.cpp)
+target_link_libraries(TestQda ${GTEST_BOTH_LIBRARIES} pthread gmock)
+target_link_libraries(TestQda ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+##############################################################################
 # Build
 ##############################################################################
 

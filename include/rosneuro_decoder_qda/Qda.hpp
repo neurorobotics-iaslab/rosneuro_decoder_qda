@@ -48,6 +48,14 @@ namespace rosneuro{
                 Eigen::MatrixXf means_;
                 Eigen::MatrixXf covs_;
                 qdaconfig_t config_;
+
+                FRIEND_TEST(QdaTestSuite, Constructor);
+                FRIEND_TEST(QdaTestSuite, Configure);
+                FRIEND_TEST(QdaTestSuite, CheckDimensionMeans);
+                FRIEND_TEST(QdaTestSuite, CheckDimensionCovs);
+                FRIEND_TEST(QdaTestSuite, CheckDimensionSize);
+                FRIEND_TEST(QdaTestSuite, Apply);
+
         };
 
     }
