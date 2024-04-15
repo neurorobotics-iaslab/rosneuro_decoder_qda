@@ -52,7 +52,7 @@ int  main(int argc, char** argv){
     Eigen::MatrixXd input = readCSV<double>(fileinput);
 
     if(!decoder->configure()){
-        ROS_ERROR("[%s] decoder not confgured correctly", decoder->name().c_str());
+        ROS_ERROR("[%s] decoder not confgured correctly", decoder->getName().c_str());
         return false;
     }
 
