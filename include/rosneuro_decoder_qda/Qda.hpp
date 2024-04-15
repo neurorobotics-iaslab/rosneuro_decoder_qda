@@ -37,10 +37,16 @@ namespace rosneuro{
                 std::vector<int> getClasses(void);
 
             private:
+                Eigen::VectorXf computePosteriorProbabilities(const std::vector<double>& likelihoods, double posterior_denominator) const;
+                double calculateExponent(const Eigen::VectorXf& input, int class_index, const Eigen::MatrixXf& covariance) const;
+                double calculateCoefficient(int input_size, const Eigen::MatrixXf& covariance) const;
+                double calculateLikelihoods(const Eigen::VectorXf& input, std::vector<double>& likelihoods);
+
+                template<typename T>
+                bool getParamAndCheck(const std::string& param_name, T& param_value);
                 bool checkDimension(void);
                 Eigen::MatrixXf rebuildCovariance(const Eigen::MatrixXf& in);
 
-            private:
                 ros::NodeHandle p_nh_;
                 Eigen::MatrixXf means_;
                 Eigen::MatrixXf covs_;
