@@ -64,14 +64,6 @@ namespace rosneuro{
             return this->is_configured_;
         }
 
-        bool Qda::isSet(void){
-            if(!this->is_configured_){
-                ROS_ERROR("[%s] Decoder not configured", this->getName().c_str());
-                return false;
-            }
-            return this->is_configured_;
-        }
-
         Eigen::VectorXf Qda::apply(const Eigen::VectorXf& in) {
             std::vector<double> likelihoods;
             double posterior_denominator = calculateLikelihoods(in, likelihoods);
@@ -137,29 +129,11 @@ namespace rosneuro{
         }
 
         std::vector<int> Qda::getClasses(void){
-            this->isSet();
-            std::vector<int> classes_lbs;
-            for(int i = 0; i < this->config_.class_lbs.size(); i++){
-                classes_lbs.push_back((int) this->config_.class_lbs.at(i));
-            }
-            return classes_lbs;
+            return defineClasses(this->config_.class_lbs);
         }
 
-        Eigen::VectorXf Qda::getFeatures(const Eigen::MatrixXf& in){
-            Eigen::VectorXf out(this->config_.n_features);
-            this->isSet();
-
-            int c_feature = 0;
-            for(int it_chan = 0; it_chan < this->config_.idchans.size(); it_chan++){
-                int idchan = this->config_.idchans.at(it_chan) - 1;
-                for(const auto& freq : this->config_.freqs.at(it_chan)){
-                    int idfreq = (int) freq/2.0;
-                    out(c_feature) = in(idchan, idfreq);
-                    c_feature ++;
-                }
-            }
-
-            return out.transpose();
+        Eigen::VectorXf Qda::getFeatures(const Eigen::MatrixXf& in) {
+            return computeFeatures(in, this->config_.n_features, this->config_.idchans, this->config_.freqs);
         }
 
         bool Qda::checkDimension(void){

@@ -17,8 +17,7 @@ namespace rosneuro {
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> readCSV(const std::string& filename) {
             std::vector<double> values;
             std::ifstream file(filename);
-            std::string row;
-            std::string entry;
+            std::string row, entry;
             int n_rows = 0;
 
             while (getline(file, row)) {

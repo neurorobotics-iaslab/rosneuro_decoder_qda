@@ -29,7 +29,6 @@ namespace rosneuro{
                 ~Qda(void);
 
                 bool configure(void);
-                bool isSet(void);
                 Eigen::VectorXf apply(const Eigen::VectorXf& in);
                 Eigen::VectorXf getFeatures(const Eigen::MatrixXf& in);
 
