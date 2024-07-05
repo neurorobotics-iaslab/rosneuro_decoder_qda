@@ -7,211 +7,168 @@ namespace rosneuro{
     namespace decoder{
 
         Qda::Qda(void) : p_nh_("~"){
-            this->setname("qda");
+            this->setName("qda");
             this->is_configured_ = false;
         }
 
         Qda::~Qda(void){}
 
+        template<typename T>
+        bool Qda::getParamAndCheck(const std::string& param_name, T& param_value) {
+            if (!GenericDecoder::getParam(param_name, param_value)) {
+                ROS_ERROR("[%s] Cannot find param '%s'", this->getName().c_str(), param_name.c_str());
+                return false;
+            }
+            return true;
+        }
+
         bool Qda::configure(void){
-            // get the parameters
-            if(!GenericDecoder::getParam(std::string("filename"), this->config_.filename)){
-                ROS_ERROR("[%s] Cannot find param 'filename'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("subject"), this->config_.subject)){
-                ROS_ERROR("[%s] Cannot find param 'subject'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("nclasses"), this->config_.nclasses)){
-                ROS_ERROR("[%s] Cannot find param 'nclasses'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("classlbs"), this->config_.classlbs)){
-                ROS_ERROR("[%s] Cannot find param 'classlbs'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("nfeatures"), this->config_.nfeatures)){
-                ROS_ERROR("[%s] Cannot find param 'nfeatures'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("lambda"), this->config_.lambda)){
-                ROS_ERROR("[%s] Cannot find param 'lambda'", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("idchans"), this->config_.idchans)){
-                ROS_ERROR("[%s] Cannot find param 'idchans'", this->name().c_str());
-                return false;
-            }
-            std::string freqs_str;
-            if(!GenericDecoder::getParam(std::string("freqs"), freqs_str)){
-                ROS_ERROR("[%s] Cannot find param 'freqs'", this->name().c_str());
-                return false;
-            }
-            if(!this->load_vectorOfVector(freqs_str, this->config_.freqs)){
-                ROS_ERROR("[%s] Cannot convert param 'freqs' to vctor of vector", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("priors"), this->config_.priors)){
-                ROS_ERROR("[%s] Cannot find param 'priors'", this->name().c_str());
-                return false;
-            }
-            std::string means_str, covs_str;
-            if(!GenericDecoder::getParam(std::string("means"), means_str)){
-                ROS_ERROR("[%s] Cannot find param 'means'", this->name().c_str());
-                return false;
-            }
-            this->means_ = Eigen::MatrixXf::Zero(this->config_.nfeatures, this->config_.nclasses);
-            if(!this->load_eigen(means_str, this->means_)){
-                ROS_ERROR("[%s] Failed to load eigen matrix for means", this->name().c_str());
-                return false;
-            }
-            if(!GenericDecoder::getParam(std::string("covs"), covs_str)){
-                ROS_ERROR("[%s] Cannot find param 'covs'", this->name().c_str());
-                return false;
-            }
-            this->covs_ = Eigen::MatrixXf::Zero(this->config_.nfeatures * this->config_.nfeatures, this->config_.nclasses);
-            if(!this->load_eigen(covs_str, this->covs_)){
-                ROS_ERROR("[%s] Failed to load eigen matrix for covs", this->name().c_str());
+            if (!getParamAndCheck("filename", this->config_.filename)) return false;
+            if (!getParamAndCheck("subject", this->config_.subject)) return false;
+            if (!getParamAndCheck("n_classes", this->config_.n_classes)) return false;
+            if (!getParamAndCheck("class_lbs", this->config_.class_lbs)) return false;
+            if (!getParamAndCheck("n_features", this->config_.n_features)) return false;
+            if (!getParamAndCheck("lambda", this->config_.lambda)) return false;
+            if (!getParamAndCheck("idchans", this->config_.idchans)) return false;
+            if (!getParamAndCheck("priors", this->config_.priors)) return false;
+
+            std::string freqs_str, means_str, covs_str;
+            if (!getParamAndCheck("freqs", freqs_str)) return false;
+            if (!getParamAndCheck("means", means_str)) return false;
+            if (!getParamAndCheck("covs", covs_str)) return false;
+
+
+            if(!this->loadVectorOfVector(freqs_str, this->config_.freqs)){
+                ROS_ERROR("[%s] Cannot convert param 'freqs' to vctor of vector", this->getName().c_str());
                 return false;
             }
 
-            // fast check for the correct dimension for the features
-            if(!this->check_dimension()){
-                ROS_ERROR("[%s] Error in the dimension", this->name().c_str());
+            this->means_ = Eigen::MatrixXf::Zero(this->config_.n_features, this->config_.n_classes);
+            if(!this->loadEigen(means_str, this->means_)){
+                ROS_ERROR("[%s] Failed to load eigen matrix for means", this->getName().c_str());
+                return false;
+            }
+
+            this->covs_ = Eigen::MatrixXf::Zero(this->config_.n_features * this->config_.n_features, this->config_.n_classes);
+            if(!this->loadEigen(covs_str, this->covs_)){
+                ROS_ERROR("[%s] Failed to load eigen matrix for covs", this->getName().c_str());
+                return false;
+            }
+
+            if(!this->checkDimension()){
+                ROS_ERROR("[%s] Error in the dimension", this->getName().c_str());
                 return false;
             }
 
             this->is_configured_ = true;
-
             return this->is_configured_;
         }
 
-        bool Qda::isSet(void){
-            if(this->is_configured_ == false){
-                ROS_ERROR("[%s] Decoder not configured", this->name().c_str());
-                return false;
-            }
+        Eigen::VectorXf Qda::apply(const Eigen::VectorXf& in) {
+            std::vector<double> likelihoods;
+            double posterior_denominator = calculateLikelihoods(in, likelihoods);
 
-            return this->is_configured_;
+            Eigen::VectorXf posterior_probabilities = computePosteriorProbabilities(likelihoods, posterior_denominator);
+
+            return posterior_probabilities;
         }
 
-        Eigen::VectorXf Qda::apply(const Eigen::VectorXf& in){
+        double Qda::calculateLikelihoods(const Eigen::VectorXf& input, std::vector<double>& likelihoods){
+            double denominator = 0.0;
+            for (int i = 0; i < this->config_.n_classes; i++) {
+                Eigen::MatrixXf class_covariance = rebuildCovariance(this->covs_.col(i));
+                double coefficient = calculateCoefficient(input.size(), class_covariance);
+                double exponent = calculateExponent(input, i, class_covariance);
+                double class_likelihood = coefficient * std::exp(exponent);
 
-            std::vector<double> lh;
-            double den = 0.0;
-            for(int i = 0; i < this->config_.nclasses; i++){
-                Eigen::MatrixXf c_cov = this->rebuild_cov(this->covs_.col(i));
-                double c_coeff = 1/(std::sqrt((std::pow(2.0 * M_PI, in.size()))* c_cov.determinant()));
-                double c_exp = -0.5 * ((in - this->means_.col(i)).transpose() * c_cov.inverse() * (in - this->means_.col(i)))(0,0);
-                double c_lh = c_coeff * std::exp(c_exp);
-
-                lh.push_back(c_lh);
-
-                den = den + c_lh * this->config_.priors.at(i);
+                likelihoods.push_back(class_likelihood);
+                denominator += class_likelihood * this->config_.priors.at(i);
             }
-
-            // Compute the posterior probability
-            Eigen::VectorXf output(lh.size(), 1);
-            for(int i = 0; i < this->config_.nclasses; i++){
-                double c_post = (lh.at(i) * this->config_.priors.at(i)) / den;
-                output(i,0) = c_post;
-            }
-
-            return output;
+            return denominator;
         }
 
-        Eigen::MatrixXf Qda::rebuild_cov(const Eigen::MatrixXf& in){
-            // check the dimensions
-            if(in.size() != this->config_.nfeatures * this->config_.nfeatures){
-                ROS_ERROR("[%s] Wrong dimension in the covariance", this->name().c_str());
+        double Qda::calculateCoefficient(int input_size, const Eigen::MatrixXf& covariance) const {
+            double coefficient = 1 / (std::sqrt((std::pow(2.0 * M_PI, input_size)) * covariance.determinant()));
+            return coefficient;
+        }
+
+        double Qda::calculateExponent(const Eigen::VectorXf& input, int class_index, const Eigen::MatrixXf& covariance) const {
+            Eigen::VectorXf mean_difference = input - this->means_.col(class_index);
+            double exponent = -0.5 * ((mean_difference.transpose() * covariance.inverse() * mean_difference)(0, 0));
+            return exponent;
+        }
+
+        Eigen::VectorXf Qda::computePosteriorProbabilities(const std::vector<double>& likelihoods, double posterior_denominator) const {
+            Eigen::VectorXf posterior_probabilities(likelihoods.size(), 1);
+            for (int i = 0; i < likelihoods.size(); i++) {
+                double posterior = (likelihoods.at(i) * this->config_.priors.at(i)) / posterior_denominator;
+                posterior_probabilities(i, 0) = posterior;
+            }
+            return posterior_probabilities;
+        }
+
+        Eigen::MatrixXf Qda::rebuildCovariance(const Eigen::MatrixXf& in) {
+            if (in.size() != this->config_.n_features * this->config_.n_features) {
+                ROS_ERROR("[%s] Wrong dimension in the covariance", this->getName().c_str());
             }
 
-            Eigen::MatrixXf out(this->config_.nfeatures, this->config_.nfeatures);
-            int cont = 0;
-            for(int i = 0; i < this->config_.nfeatures; i++){
-                for(int j = 0; j < this->config_.nfeatures; j++){
-                    out(j,i) = in(cont, 0);
-                    cont ++;
+            Eigen::MatrixXf covariance_matrix(this->config_.n_features, this->config_.n_features);
+            int index = 0;
+            for (int i = 0; i < this->config_.n_features; i++) {
+                for (int j = 0; j < this->config_.n_features; j++) {
+                    covariance_matrix(j, i) = in(index, 0);
+                    index++;
                 }
             }
-
-            return out;
+            return covariance_matrix;
         }
 
-
-        std::string Qda::path(){
+        std::string Qda::getPath(){
             this->isSet();
             return this->config_.filename;
         }
 
-        std::vector<int> Qda::classes(void){
-            this->isSet();
-            std::vector<int> classeslbs;
-            for(int i = 0; i < this->config_.classlbs.size(); i++){
-                classeslbs.push_back((int) this->config_.classlbs.at(i));
-            }
-            return classeslbs;
+        std::vector<int> Qda::getClasses(void){
+            return defineClasses(this->config_.class_lbs);
         }
 
-        Eigen::VectorXf Qda::getFeatures(const Eigen::MatrixXf& in){
-            // check if set and prepare for the correct dimension
-            Eigen::VectorXf out(this->config_.nfeatures);
-            this->isSet();
-
-            // iterate over channels
-            int c_feature = 0;
-            for(int it_chan = 0; it_chan < this->config_.idchans.size(); it_chan++){
-                int idchan = this->config_.idchans.at(it_chan) - 1; // -1 bc: channels starts from 1 and not 0
-                // iterate over freqs for that channel
-                for(const auto& freq : this->config_.freqs.at(it_chan)){
-                    // we have the freq value and not the id of that freq
-                    int idfreq = (int) freq/2.0;
-                    out(c_feature) = in(idchan, idfreq);
-                    c_feature ++;
-                }
-            }
-
-            return out.transpose();
+        Eigen::VectorXf Qda::getFeatures(const Eigen::MatrixXf& in) {
+            return computeFeatures(in, this->config_.n_features, this->config_.idchans, this->config_.freqs);
         }
 
-        bool Qda::check_dimension(void){
-            // check the means
-            if(this->means_.rows() != this->config_.nfeatures || 
-               this->means_.cols() != this->config_.nclasses){
-                ROS_ERROR("[%s] Wrong dimensions in the 'means' parameter", this->name().c_str());
+        bool Qda::checkDimension(void){
+            if(this->means_.rows() != this->config_.n_features ||
+               this->means_.cols() != this->config_.n_classes){
+                ROS_ERROR("[%s] Wrong dimensions in the 'means' parameter", this->getName().c_str());
                 return false;
             }
 
-            // check the cov
-            if(this->covs_.rows() != this->config_.nfeatures * this->config_.nfeatures || 
-               this->covs_.cols() != this->config_.nclasses){
-                ROS_ERROR("[%s] Wrong dimensions in the 'covs' parameter", this->name().c_str());
+            if(this->covs_.rows() != this->config_.n_features * this->config_.n_features ||
+               this->covs_.cols() != this->config_.n_classes){
+                ROS_ERROR("[%s] Wrong dimensions in the 'covs' parameter", this->getName().c_str());
                 return false;
             }
 
-            // check classes size
-            if(this->config_.priors.size() != this->config_.nclasses |\
-               this->config_.nclasses != this->config_.classlbs.size()){
-                ROS_ERROR("[%s] Wrong dimensions in the given classes parameters", this->name().c_str());
+            if(this->config_.priors.size() != this->config_.n_classes |\
+               this->config_.n_classes != this->config_.class_lbs.size()){
+                ROS_ERROR("[%s] Wrong dimensions in the given classes parameters", this->getName().c_str());
                 return false;
             }
 
-            // check the features
             int sum = 0;
             for(int i = 0; i < this->config_.freqs.size(); i++){
                 std::vector<uint32_t> temp = this->config_.freqs.at(i);
                 sum = sum + temp.size();
             } 
-            if(sum != this->config_.nfeatures){
-                ROS_ERROR("[%s] Incorrect dimension for 'freqs' different from 'nfeatures'", this->name().c_str());
+            if(sum != this->config_.n_features){
+                ROS_ERROR("[%s] Incorrect dimension for 'freqs' different from 'n_features'", this->getName().c_str());
                 return false;
             }
 
             return true;
         }
 
-PLUGINLIB_EXPORT_CLASS(rosneuro::decoder::Qda, rosneuro::decoder::GenericDecoder);
+        PLUGINLIB_EXPORT_CLASS(rosneuro::decoder::Qda, rosneuro::decoder::GenericDecoder);
     }
 }
 

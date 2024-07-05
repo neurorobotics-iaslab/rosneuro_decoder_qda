@@ -39,6 +39,14 @@ catkin_package(
 )
 
 ##############################################################################
+# TEST
+##############################################################################
+
+catkin_add_gtest(TestQda test/TestQda.cpp)
+target_link_libraries(TestQda ${GTEST_BOTH_LIBRARIES} pthread gmock)
+target_link_libraries(TestQda ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+##############################################################################
 # Build
 ##############################################################################
 
@@ -59,8 +67,8 @@ add_dependencies(${PROJECT_NAME}
 				 ${catkin_EXPORTED_TARGETS}
 )
 
-add_executable(test_qda test/test_qda.cpp)
-target_link_libraries(test_qda ${catkin_LIBRARIES} fftw3)
+add_executable(run_qda example/run_qda.cpp)
+target_link_libraries(run_qda ${catkin_LIBRARIES} fftw3)
 
 #################
 ##   Install   ##

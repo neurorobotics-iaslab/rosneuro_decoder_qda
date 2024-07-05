@@ -5,7 +5,7 @@
 	<arg name="cfg_name" default='QdaCfg'/>
     <arg name="datapath" default="$(find rosneuro_decoder_qda)"/>
 	
-    <rosparam command="load" file="$(find rosneuro_decoder_qda)/test/qdaCfg.yaml"/>
+    <rosparam command="load" file="$(find rosneuro_decoder_qda)/example/qdaCfg.yaml"/>
 	<node name="test_qda" pkg="rosneuro_decoder_qda" type="test_qda" output="screen" >
 		<param name="~plugin" 	  value="$(arg plugin)"/>
         <param name="cfg_name" 	  value="$(arg cfg_name)"/>
